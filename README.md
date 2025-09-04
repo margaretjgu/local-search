@@ -22,16 +22,17 @@ Local file search application that provides both semantic and lexical search cap
 ## Quick Start
 
 ### 1. Start Elasticsearch
-
-The easiest way to get Elasticsearch running locally:
-
+https://github.com/elastic/start-local
 ```bash
 curl -fsSL https://elastic.co/start-local | sh
 ```
 
 This will:
-- Download and start Elasticsearch on `http://localhost:9200`
+- Download and start Elasticsearch on `http://localhost:9200`  
 - Download and start Kibana on `http://localhost:5601`
+- Provide you with credentials (username, password, API key)
+
+If you already have Elasticsearch running, just update your `.env` file with the connection details.
 
 ### 2. Install Dependencies
 

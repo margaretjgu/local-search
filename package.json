@@ -7,8 +7,7 @@
     "start": "node dist/main.js",
     "dev": "ts-node-dev --respawn --transpile-only src/main.ts",
     "build": "tsc",
-    "test": "jest",
-    "elasticsearch:start": "curl -fsSL https://elastic.co/start-local | sh"
+    "test": "jest"
   },
   "keywords": [
     "elasticsearch",

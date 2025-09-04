@@ -93,3 +93,6 @@ temp/
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Elasticsearch local setup (users should install this separately)
+elastic-start-local/
