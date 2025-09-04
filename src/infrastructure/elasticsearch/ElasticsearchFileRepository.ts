@@ -99,11 +99,36 @@ export class ElasticsearchFileRepository implements FileRepository {
       case 'semantic':
         // semantic search = finding by meaning/context (like asking for "car stuff" and finding "automotive")
         must.push({
-          multi_match: {
-            query: query.query,         // what the user typed
-            fields: ['name^2', 'content'], // search in filename (2x weight) and file content
-            type: 'best_fields',        // find the best matching field for each document
-            fuzziness: 'AUTO'           // allows typos/similar words (teh -> the)
+          function_score: {
+            query: {
+              multi_match: {
+                query: query.query,         // what the user typed
+                fields: ['name^2', 'content^5'], // heavily favor content for semantic understanding
+                type: 'best_fields',        // find the best matching field for each document
+                fuzziness: 'AUTO'           // allows typos/similar words (teh -> the)
+              }
+            },
+            functions: [
+              // give subtle boost to document files for semantic searches
+              {
+                filter: { term: { "extension": ".pdf" } },
+                weight: 1.2
+              },
+              {
+                filter: { terms: { "extension": [".doc", ".docx"] } },
+                weight: 1.15
+              },
+              {
+                filter: { terms: { "extension": [".txt", ".md"] } },
+                weight: 1.1
+              },
+              // reduce relevance of config files for semantic searches
+              {
+                filter: { term: { "name": "package.json" } },
+                weight: 0.02
+              }
+            ],
+            boost_mode: "sum"  // use sum for more balanced scoring
           }
         });
         break;
@@ -125,20 +150,49 @@ export class ElasticsearchFileRepository implements FileRepository {
           bool: {
             should: [  // "should" means any of these can match (like OR)
               {
-                multi_match: {
-                  query: query.query,         // semantic search part
-                  fields: ['name^3', 'content'], // filename gets 3x weight
-                  type: 'best_fields',        // meaning-based matching
-                  fuzziness: 'AUTO',          // handle typos
-                  boost: 1.2                  // give this slightly higher importance
+                // semantic search part with boosting for document files
+                function_score: {
+                  query: {
+                    multi_match: {
+                      query: query.query,         // semantic search part
+                      fields: ['name^2', 'content^5'], // heavily favor content for semantic matching
+                      type: 'best_fields',        // meaning-based matching
+                      fuzziness: 'AUTO'           // handle typos
+                    }
+                  },
+                  functions: [
+                    // give slight boost to PDF files for document searches
+                    {
+                      filter: { term: { "extension": ".pdf" } },
+                      weight: 1.3
+                    },
+                    // give slight boost to DOC files
+                    {
+                      filter: { terms: { "extension": [".doc", ".docx"] } },
+                      weight: 1.2
+                    },
+                    // give slight boost to text files
+                    {
+                      filter: { terms: { "extension": [".txt", ".md"] } },
+                      weight: 1.1
+                    },
+                    // penalize package.json files heavily
+                    {
+                      filter: { term: { "name": "package.json" } },
+                      weight: 0.02
+                    }
+                  ],
+                  boost_mode: "sum",  // use sum for more balanced scoring
+                  boost: 1.0
                 }
               },
               {
+                // lexical search for exact matches
                 multi_match: {
                   query: query.query,         // lexical search part
-                  fields: ['name^2', 'content'], // filename gets 2x weight
+                  fields: ['name^4', 'content'], // filename gets 4x weight
                   type: 'phrase_prefix',      // exact matching
-                  boost: 0.8                  // slightly less important than semantic
+                  boost: 1.0                  // base importance
                 }
               }
             ]
