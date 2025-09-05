@@ -40,16 +40,27 @@ If you already have Elasticsearch running, just update your `.env` file with the
 npm install
 ```
 
-### 3. Build and Run
+### 3. Configure Environment
+
+Create `.env` file with Elasticsearch credentials from start-local output:
+```bash
+cp env.example .env
+# Edit .env with your actual credentials
+```
+
+### 4. Check Setup
+
+```bash
+npm run check-setup
+```
+
+### 5. Build and Run
 
 ```bash
 npm run dev
-
-npm run build
-npm start
 ```
 
-### 5. Access the Application
+### 6. Access the Application
 
 - **UI**: http://localhost:3000
 - **API**: http://localhost:3000/api
@@ -153,11 +164,19 @@ npm run test:coverage
 
 ## Troubleshooting
 
-### Elasticsearch Connection Issues
+**Connection Issues:**
 ```bash
-# Check if Elasticsearch is running
+# 1. Check Elasticsearch is running
 curl http://localhost:9200
 
-# Restart Elasticsearch
+# 2. Verify setup
+npm run check-setup
+
+# 3. Restart Elasticsearch  
 curl -fsSL https://elastic.co/start-local | sh
 ```
+
+**Common fixes:**
+- Use `http://localhost:9200` (not https) in `.env`
+- Copy exact credentials from start-local output
+- Change PORT in `.env` if 3000 is in use
