@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Local File Search</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f8f9fa;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .search-box {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .search-form {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+
+        button {
+            padding: 12px 24px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        .filters {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        select {
+            padding: 8px 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .admin-panel {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .admin-controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .admin-controls input {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .results {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .result-item {
+            padding: 20px;
+            border-bottom: 1px solid #e1e5e9;
+        }
+
+        .result-item:last-child {
+            border-bottom: none;
+        }
+
+        .result-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #007bff;
+            margin-bottom: 5px;
+        }
+
+        .result-path {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+            font-family: monospace;
+        }
+
+        .result-meta {
+            display: flex;
+            gap: 15px;
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 10px;
+        }
+
+        .result-highlights {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 14px;
+            border-left: 3px solid #007bff;
+        }
+
+        .highlight {
+            background: #ffeb3b;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Local File Search</h1>
+            <p>Semantic and lexical search for your local files</p>
+        </div>
+
+        <div class="admin-panel">
+            <h3>Index Management</h3>
+            <div class="admin-controls">
+                <input type="text" id="directoryPath" placeholder="Enter directory path to index (e.g., /Users/username/Documents)">
+                <button onclick="indexDirectory()">Index Directory</button>
+                <button onclick="resetIndex()">Reset Index</button>
+                <button onclick="startWatching()">Start Watching</button>
+                <button onclick="stopWatching()">Stop Watching</button>
+            </div>
+        </div>
+
+        <div class="search-box">
+            <form class="search-form" onsubmit="performSearch(event)">
+                <input type="text" id="searchQuery" placeholder="Search for files... (e.g., 'medical documents', 'python scripts', 'meeting notes')" required>
+                <button type="submit">Search</button>
+            </form>
+            <div class="filters">
+                <select id="searchType">
+                    <option value="hybrid">Hybrid Search</option>
+                    <option value="semantic">Semantic Only</option>
+                    <option value="lexical">Lexical Only</option>
+                </select>
+                <input type="text" id="extensions" placeholder="Extensions (e.g., .pdf,.doc,.txt)">
+                <select id="limit">
+                    <option value="10">10 results</option>
+                    <option value="20" selected>20 results</option>
+                    <option value="50">50 results</option>
+                </select>
+            </div>
+        </div>
+
+        <div id="message"></div>
+        <div id="results" class="results" style="display: none;"></div>
+    </div>
+
+    <script>
+        let currentOffset = 0;
+        let hasMoreResults = true;
+
+        async function performSearch(event) {
+            if (event) event.preventDefault();
+            
+            const query = document.getElementById('searchQuery').value.trim();
+            if (!query) return;
+
+            currentOffset = 0;
+            hasMoreResults = true;
+            
+            showMessage('Searching...', 'loading');
+            
+            try {
+                const results = await searchFiles(query, currentOffset);
+                displayResults(results, true);
+                currentOffset += results.length;
+            } catch (error) {
+                showMessage(`Search failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function searchFiles(query, offset = 0) {
+            const searchType = document.getElementById('searchType').value;
+            const extensions = document.getElementById('extensions').value;
+            const limit = document.getElementById('limit').value;
+
+            const params = new URLSearchParams({
+                q: query,
+                type: searchType,
+                limit: limit,
+                offset: offset.toString()
+            });
+
+            if (extensions.trim()) {
+                params.append('extensions', extensions.trim());
+            }
+
+            const response = await fetch(`/api/search?${params}`);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            const data = await response.json();
+            return data.results || [];
+        }
+
+        function displayResults(results, clearPrevious = false) {
+            const resultsContainer = document.getElementById('results');
+            
+            if (clearPrevious) {
+                resultsContainer.innerHTML = '';
+            }
+
+            if (results.length === 0 && clearPrevious) {
+                resultsContainer.style.display = 'block';
+                resultsContainer.innerHTML = '<div class="no-results">No files found matching your search.</div>';
+                hideMessage();
+                return;
+            }
+
+            resultsContainer.style.display = 'block';
+            
+            results.forEach(result => {
+                const item = createResultItem(result);
+                resultsContainer.appendChild(item);
+            });
+
+            hideMessage();
+        }
+
+        function createResultItem(result) {
+            const div = document.createElement('div');
+            div.className = 'result-item';
+            
+            const file = result.file;
+            const score = result.score;
+            const highlights = result.highlights || [];
+
+            const formatSize = (bytes) => {
+                const sizes = ['B', 'KB', 'MB', 'GB'];
+                if (bytes === 0) return '0 B';
+                const i = Math.floor(Math.log(bytes) / Math.log(1024));
+                return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
+            };
+
+            const formatDate = (dateString) => {
+                return new Date(dateString).toLocaleString();
+            };
+
+            const highlightText = (text) => {
+                return text.replace(/<em>(.*?)<\/em>/g, '<span class="highlight">$1</span>');
+            };
+
+            div.innerHTML = `
+                <div class="result-title">${file.name}</div>
+                <div class="result-path">${file.path}</div>
+                <div class="result-meta">
+                    <span>Score: ${score.toFixed(2)}</span>
+                    <span>Size: ${formatSize(file.size)}</span>
+                    <span>Modified: ${formatDate(file.modifiedAt)}</span>
+                    <span>Extension: ${file.extension}</span>
+                </div>
+                ${highlights.length > 0 ? `
+                    <div class="result-highlights">
+                        ${highlights.map(h => highlightText(h)).join('<br>')}
+                    </div>
+                ` : ''}
+            `;
+
+            return div;
+        }
+
+        async function indexDirectory() {
+            const path = document.getElementById('directoryPath').value.trim();
+            if (!path) {
+                showMessage('Please enter a directory path', 'error');
+                return;
+            }
+
+            showMessage('Indexing directory...', 'loading');
+
+            try {
+                const response = await fetch('/api/index', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ path })
+                });
+
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                
+                showMessage('Directory indexed successfully!', 'success');
+            } catch (error) {
+                showMessage(`Indexing failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function resetIndex() {
+            if (!confirm('Are you sure you want to reset the index? This will delete all indexed files.')) {
+                return;
+            }
+
+            showMessage('Resetting index...', 'loading');
+
+            try {
+                const response = await fetch('/api/index/reset', { method: 'POST' });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                
+                showMessage('Index reset successfully!', 'success');
+                document.getElementById('results').style.display = 'none';
+            } catch (error) {
+                showMessage(`Reset failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function startWatching() {
+            const path = document.getElementById('directoryPath').value.trim();
+            if (!path) {
+                showMessage('Please enter a directory path', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/watch/start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ path })
+                });
+
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                
+                showMessage('Started watching directory for changes!', 'success');
+            } catch (error) {
+                showMessage(`Failed to start watching: ${error.message}`, 'error');
+            }
+        }
+
+        async function stopWatching() {
+            try {
+                const response = await fetch('/api/watch/stop', { method: 'POST' });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                
+                showMessage('Stopped watching directories', 'success');
+            } catch (error) {
+                showMessage(`Failed to stop watching: ${error.message}`, 'error');
+            }
+        }
+
+        function showMessage(text, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.className = type;
+            messageDiv.textContent = text;
+            messageDiv.style.display = 'block';
+        }
+
+        function hideMessage() {
+            document.getElementById('message').style.display = 'none';
+        }
+
+        // Auto-hide success messages
+        setInterval(() => {
+            const messageDiv = document.getElementById('message');
+            if (messageDiv.classList.contains('success')) {
+                hideMessage();
+            }
+        }, 3000);
+    </script>
+</body>
+</html>
